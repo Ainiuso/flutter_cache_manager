@@ -165,6 +165,11 @@ abstract class BaseCacheManager {
     return file;
   }
 
+  Future<List<String>> getStoredUrls() async {
+    List<CacheObject> all = await store.retrieveAllCacheData();
+    return all.map((i) => i.url).toList();
+  }
+
   /// Remove a file from the cache
   removeFile(String url) async {
     var cacheObject = await store.retrieveCacheData(url);

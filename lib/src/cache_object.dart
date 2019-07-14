@@ -109,6 +109,14 @@ class CacheObjectProvider {
     return null;
   }
 
+  Future<List<CacheObject>> getAll() async {
+    List<Map> maps = await db.query(tableCacheObject);
+    if (maps.length > 0) {
+      return maps.map((m) => CacheObject.fromMap(m)).toList();
+    }
+    return List();
+  }
+
   Future<int> delete(int id) async {
     return await db
         .delete(tableCacheObject, where: "$columnId = ?", whereArgs: [id]);

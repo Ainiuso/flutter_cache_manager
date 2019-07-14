@@ -73,6 +73,11 @@ class CacheStore {
     return _memCache[url];
   }
 
+  Future<List<CacheObject>> retrieveAllCacheData() async {
+    var provider = await _cacheObjectProvider;
+    return await provider.getAll();
+  }
+
   Future<bool> _fileExists(CacheObject cacheObject) async {
     if (cacheObject?.relativePath == null) {
       return false;
