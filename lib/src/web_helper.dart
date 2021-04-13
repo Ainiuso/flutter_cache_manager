@@ -81,7 +81,7 @@ class WebHelper {
 
   Future<FileFetcherResponse> _defaultHttpGetter(String url,
       {Map<String, String> headers}) async {
-    var httpResponse = await http.get(url, headers: headers);
+    var httpResponse = await http.get(Uri.parse(url), headers: headers);
     return new HttpFileFetcherResponse(httpResponse);
   }
 
