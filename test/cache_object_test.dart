@@ -18,7 +18,7 @@ void main() {
     await provider.open();
     var storedObject = await provider.get(url);
     expect(storedObject, isNotNull);
-    expect(storedObject.id, isNotNull);
+    expect(storedObject!.id, isNotNull);
   });
 }
 

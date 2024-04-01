@@ -12,5 +12,8 @@ class FileInfo {
   String originalUrl;
   File file;
   FileSource source;
-  DateTime validTill;
+  DateTime? validTill;
+
+  bool isInvalid() => validTill?.isBefore(DateTime.now()) ?? false;
+
 }

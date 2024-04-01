@@ -25,11 +25,11 @@ final String columnTouched = "touched";
 
 ///Cache information of one file
 class CacheObject {
-  int id;
+  int? id;
   String url;
-  String relativePath;
-  DateTime validTill;
-  String eTag;
+  String? relativePath;
+  DateTime? validTill;
+  String? eTag;
 
   CacheObject(this.url,
       {this.relativePath, this.validTill, this.eTag, this.id});
@@ -48,16 +48,15 @@ class CacheObject {
     return map;
   }
 
-  CacheObject.fromMap(Map<String, dynamic> map) {
+  CacheObject.fromMap(Map<String, dynamic> map) : url = map[columnUrl]! {
     id = map[columnId];
-    url = map[columnUrl];
     relativePath = map[columnPath];
     validTill = DateTime.fromMillisecondsSinceEpoch(map[columnValidTill]);
     eTag = map[columnETag];
   }
 
   static List<CacheObject> fromMapList(List<Map<String, dynamic>> list) {
-    var objects = new List<CacheObject>();
+    var objects = List<CacheObject>.empty();
     for (var map in list) {
       objects.add(CacheObject.fromMap(map));
     }
@@ -66,7 +65,7 @@ class CacheObject {
 }
 
 class CacheObjectProvider {
-  Database db;
+  late Database db;
   String path;
 
   CacheObjectProvider(this.path);
@@ -100,8 +99,8 @@ class CacheObjectProvider {
     return cacheObject;
   }
 
-  Future<CacheObject> get(String url) async {
-    List<Map> maps = await db.query(tableCacheObject,
+  Future<CacheObject?> get(String url) async {
+    List<Map<String, dynamic>> maps = await db.query(tableCacheObject,
         columns: null, where: "$columnUrl = ?", whereArgs: [url]);
     if (maps.length > 0) {
       return new CacheObject.fromMap(maps.first);
@@ -110,11 +109,11 @@ class CacheObjectProvider {
   }
 
   Future<List<CacheObject>> getAll() async {
-    List<Map> maps = await db.query(tableCacheObject);
+    List<Map<String, dynamic>> maps = await db.query(tableCacheObject);
     if (maps.length > 0) {
       return maps.map((m) => CacheObject.fromMap(m)).toList();
     }
-    return List();
+    return List.empty();
   }
 
   Future<int> delete(int id) async {
@@ -133,12 +132,12 @@ class CacheObjectProvider {
   }
 
   Future<List<CacheObject>> getAllObjects() async {
-    List<Map> maps = await db.query(tableCacheObject, columns: null);
+    List<Map<String, dynamic>> maps = await db.query(tableCacheObject, columns: null);
     return CacheObject.fromMapList(maps);
   }
 
   Future<List<CacheObject>> getObjectsOverCapacity(int capacity) async {
-    List<Map> maps = await db.query(tableCacheObject,
+    List<Map<String, dynamic>> maps = await db.query(tableCacheObject,
         columns: null,
         orderBy: "$columnTouched ASC",
         where: "$columnTouched < ?",

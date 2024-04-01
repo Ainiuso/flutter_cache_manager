@@ -11,13 +11,13 @@ import 'package:sqflite/sqflite.dart';
 ///Released under MIT License.
 
 class CacheStore {
-  Map<String, Future<CacheObject>> _futureCache = new Map();
+  Map<String, Future<CacheObject>?> _futureCache = new Map();
   Map<String, CacheObject> _memCache = new Map();
 
-  Future<String> filePath;
-  String _filePath;
+  late Future<String> filePath;
+  String? _filePath;
 
-  Future<CacheObjectProvider> _cacheObjectProvider;
+  late Future<CacheObjectProvider> _cacheObjectProvider;
   String storeKey;
 
   final int _capacity;
@@ -25,7 +25,7 @@ class CacheStore {
 
   DateTime lastCleanupRun = DateTime.now();
   static const Duration cleanupRunMinInterval = Duration(seconds: 10);
-  Timer _scheduledCleanup;
+  Timer? _scheduledCleanup;
 
   CacheStore(
       Future<String> basePath, this.storeKey, this._capacity, this._maxAge) {
@@ -48,7 +48,7 @@ class CacheStore {
     return provider;
   }
 
-  Future<FileInfo> getFile(String url) async {
+  Future<FileInfo?> getFile(String url) async {
     var cacheObject = await retrieveCacheData(url);
     if (cacheObject == null || cacheObject.relativePath == null) {
       return null;
@@ -63,7 +63,7 @@ class CacheStore {
     _updateCacheDataInDatabase(cacheObject);
   }
 
-  Future<CacheObject> retrieveCacheData(String url) {
+  Future<CacheObject>? retrieveCacheData(String url) {
     if (_memCache.containsKey(url)) {
       return Future.value(_memCache[url]);
     }
@@ -84,15 +84,15 @@ class CacheStore {
     return _futureCache[url];
   }
 
-  FileInfo getFileFromMemory(String url) {
+  FileInfo? getFileFromMemory(String url) {
     if (_memCache[url] == null || _filePath == null) {
       return null;
     }
     var cacheObject = _memCache[url];
 
-    var path = p.join(_filePath, cacheObject.relativePath);
+    var path = p.join(_filePath!, cacheObject?.relativePath);
     return new FileInfo(
-        File(path), FileSource.Cache, cacheObject.validTill, url);
+        File(path), FileSource.Cache, cacheObject?.validTill, url);
   }
 
   Future<List<CacheObject>> retrieveAllCacheData() async {
@@ -100,21 +100,21 @@ class CacheStore {
     return await provider.getAll();
   }
 
-  Future<bool> _fileExists(CacheObject cacheObject) async {
+  Future<bool> _fileExists(CacheObject? cacheObject) async {
     if (cacheObject?.relativePath == null) {
       return false;
     }
-    return new File(p.join(await filePath, cacheObject.relativePath)).exists();
+    return new File(p.join(await filePath, cacheObject!.relativePath)).exists();
   }
 
   Future<CacheObject> _getCacheDataFromDatabase(String url) async {
     var provider = await _cacheObjectProvider;
     var data = await provider.get(url);
     if (await _fileExists(data)) {
-      _updateCacheDataInDatabase(data);
+      _updateCacheDataInDatabase(data!);
     }
     _scheduleCleanup();
-    return data;
+    return data!;
   }
 
   void _scheduleCleanup() {
@@ -138,7 +138,7 @@ class CacheStore {
     var overCapacity = await provider.getObjectsOverCapacity(_capacity);
     var oldObjects = await provider.getOldObjects(_maxAge);
 
-    var toRemove = List<int>();
+    var toRemove = List<int>.empty();
     overCapacity.forEach((cacheObject) async {
       _removeCachedFile(cacheObject, toRemove);
     });
@@ -151,7 +151,7 @@ class CacheStore {
 
   emptyCache() async {
     var provider = await _cacheObjectProvider;
-    var toRemove = List<int>();
+    var toRemove = List<int>.empty();
 
     var allObjects = await provider.getAllObjects();
     allObjects.forEach((cacheObject) async {
@@ -163,14 +163,14 @@ class CacheStore {
 
   removeCachedFile(CacheObject cacheObject) async {
     var provider = await _cacheObjectProvider;
-    var toRemove = List<int>();
+    var toRemove = List<int>.empty();
     _removeCachedFile(cacheObject, toRemove);
     await provider.deleteAll(toRemove);
   }
 
   _removeCachedFile(CacheObject cacheObject, List<int> toRemove) async {
     if (!toRemove.contains(cacheObject.id)) {
-      toRemove.add(cacheObject.id);
+      toRemove.add(cacheObject.id!);
       if (_memCache.containsKey(cacheObject.url))
         _memCache.remove(cacheObject.url);
       if (_futureCache.containsKey(cacheObject.url))

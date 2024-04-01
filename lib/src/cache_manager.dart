@@ -19,7 +19,7 @@ import 'package:uuid/uuid.dart';
 class DefaultCacheManager extends BaseCacheManager {
   static const key = "libCachedImageData";
 
-  static DefaultCacheManager _instance;
+  static DefaultCacheManager? _instance;
 
   /// The DefaultCacheManager that can be easily used directly. The code of
   /// this implementation can be used as inspiration for more complex cache
@@ -28,7 +28,7 @@ class DefaultCacheManager extends BaseCacheManager {
     if (_instance == null) {
       _instance = new DefaultCacheManager._();
     }
-    return _instance;
+    return _instance!;
   }
 
   DefaultCacheManager._() : super(key);
@@ -40,7 +40,7 @@ class DefaultCacheManager extends BaseCacheManager {
 }
 
 abstract class BaseCacheManager {
-  Future<String> _fileBasePath;
+  late Future<String> _fileBasePath;
 
   /// Creates a new instance of a cache manager. This can be used to retrieve
   /// files from the cache or download them online. The http headers are used
@@ -56,7 +56,7 @@ abstract class BaseCacheManager {
   BaseCacheManager(this._cacheKey,
       {Duration maxAgeCacheObject = const Duration(days: 30),
       int maxNrOfCacheObjects = 200,
-      FileFetcher fileFetcher}) {
+      FileFetcher? fileFetcher}) {
     _fileBasePath = getFilePath();
 
     _maxAgeCacheObject = maxAgeCacheObject;
@@ -67,76 +67,66 @@ abstract class BaseCacheManager {
   }
 
   final String _cacheKey;
-  Duration _maxAgeCacheObject;
-  int _maxNrOfCacheObjects;
+  late Duration _maxAgeCacheObject;
+  late int _maxNrOfCacheObjects;
 
   /// This path is used as base folder for all cached files.
   Future<String> getFilePath();
 
   /// Store helper for cached files
-  CacheStore store;
+  late CacheStore store;
 
   /// Webhelper to download and store files
-  WebHelper webHelper;
+  late WebHelper webHelper;
 
   /// Get the file from the cache and/or online, depending on availability and age.
   /// Downloaded form [url], [headers] can be used for example for authentication.
   /// When a file is cached it is return directly, when it is too old the file is
   /// downloaded in the background. When a cached file is not available the
   /// newly downloaded file is returned.
-  Future<File> getSingleFile(String url, {Map<String, String> headers}) async {
+  Future<File?> getSingleFile(String url, {Map<String, String> headers = const {}}) async {
     var cacheFile = await getFileFromCache(url);
     if (cacheFile != null) {
-      if (cacheFile.validTill.isBefore(DateTime.now())) {
+      if (cacheFile.isInvalid()) {
         webHelper.downloadFile(url, authHeaders: headers);
       }
       return cacheFile.file;
     }
-    try {
-      var download = await webHelper.downloadFile(url, authHeaders: headers);
-      return download.file;
-    } catch (e) {
-      return null;
-    }
+    var download = await webHelper.downloadFile(url, authHeaders: headers);
+    return download?.file;
   }
 
   /// Get the file from the cache and/or online, depending on availability and age.
   /// Downloaded form [url], [headers] can be used for example for authentication.
   /// The files are returned as stream. First the cached file if available, when the
   /// cached file is too old the newly downloaded file is returned afterwards.
-  Stream<FileInfo> getFile(String url, {Map<String, String> headers}) async* {
+  Stream<FileInfo> getFile(String url, {Map<String, String> headers = const {}}) async* {
     var cacheFile = await getFileFromCache(url);
     if (cacheFile != null) {
       yield cacheFile;
     }
-    if (cacheFile == null || cacheFile.validTill.isBefore(DateTime.now())) {
-      try {
-        var webFile = await webHelper.downloadFile(url, authHeaders: headers);
-        if (webFile != null) {
-          yield webFile;
-        }
-      } catch (e) {
-        if (cacheFile == null) {
-          yield e;
-        }
+    if (cacheFile == null || cacheFile.isInvalid()) {
+      var webFile = await webHelper.downloadFile(url, authHeaders: headers);
+      if (webFile != null) {
+        yield webFile;
       }
     }
   }
 
   ///Download the file and add to cache
-  Future<FileInfo> downloadFile(String url,
-      {Map<String, String> authHeaders, bool force = false}) async {
+  Future<FileInfo?> downloadFile(String url,
+      {Map<String, String> authHeaders = const {}, bool force = false}) async {
     return await webHelper.downloadFile(url,
         authHeaders: authHeaders, ignoreMemCache: force);
   }
 
   ///Get the file from the cache
-  Future<FileInfo> getFileFromCache(String url) async {
+  Future<FileInfo?> getFileFromCache(String url) async {
     return await store.getFile(url);
   }
 
   ///Returns the file from memory if it has already been fetched
-  FileInfo getFileFromMemory(String url) {
+  FileInfo? getFileFromMemory(String url) {
     return store.getFileFromMemory(url);
   }
 
@@ -147,15 +137,14 @@ abstract class BaseCacheManager {
   /// is re-used.
   /// The returned [File] is saved on disk.
   Future<File> putFile(String url, Uint8List fileBytes,
-      {String eTag,
+      {String? eTag,
       Duration maxAge = const Duration(days: 30),
       String fileExtension = "file"}) async {
     var cacheObject = await store.retrieveCacheData(url);
     if (cacheObject == null) {
       var relativePath = "${new Uuid().v1()}.$fileExtension";
-      cacheObject = new CacheObject(url, relativePath: relativePath);
+      cacheObject = new CacheObject(url, relativePath: relativePath, validTill: DateTime.now().add(maxAge));
     }
-    cacheObject.validTill = DateTime.now().add(maxAge);
     cacheObject.eTag = eTag;
 
     var path = p.join(await getFilePath(), cacheObject.relativePath);

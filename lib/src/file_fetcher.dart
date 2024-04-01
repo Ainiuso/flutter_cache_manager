@@ -13,10 +13,10 @@ typedef Future<FileFetcherResponse> FileFetcher(String url,
 abstract class FileFetcherResponse {
   get statusCode;
 
-  Uint8List get bodyBytes => null;
+  Uint8List? get bodyBytes => null;
 
   bool hasHeader(String name);
-  String header(String name);
+  String? header(String name);
 }
 
 class HttpFileFetcherResponse implements FileFetcherResponse {
@@ -30,7 +30,7 @@ class HttpFileFetcherResponse implements FileFetcherResponse {
   }
 
   @override
-  String header(String name) {
+  String? header(String name) {
     return _response.headers[name];
   }
 
